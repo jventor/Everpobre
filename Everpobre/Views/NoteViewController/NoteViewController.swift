@@ -8,6 +8,7 @@
 
 import UIKit
 
+
 protocol NoteViewControllerDelegate {
   func didChangeNote()
 }
@@ -137,7 +138,16 @@ override func viewDidLoad() {
     swipeGesture.direction = .down
   
     view.addGestureRecognizer(swipeGesture)
+  
+  
+  //navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Add Location", style: .plain, target: self, action: #selector(addLocation))
   }
+  
+//  @objc func addLocation(){
+//    print("add location")
+//    let selectInMap = SelectionInMapViewController()
+//    navigationController?.pushViewController(selectInMap, animated: true)
+//  }
   
   @objc func closeKeyboard(){
     if noteTextView.isFirstResponder {
@@ -273,6 +283,23 @@ extension NoteViewController : UIPickerViewDelegate, UIPickerViewDataSource {
     notebookTextField.text = note.notebook.name
 
     self.delegate?.didChangeNote()
+    self.view.endEditing(true)
   }
 }
 
+extension NoteViewController : SelectionInMapViewControllerDelegate {
+
+  func didSaveMapLocation(latitude: Double, longitude: Double){
+    let context = Container.default.viewContext
+    if note.geoposition != nil {
+      note.geoposition?.latitude = latitude as NSNumber
+      note.geoposition?.longitude = longitude as NSNumber
+    }
+    else{
+      let _ = GeoPosition(latitude: latitude, longitude: longitude, note: note, inContext: context)
+    }
+    delegate?.didChangeNote()
+  }
+  
+  
+}

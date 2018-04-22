@@ -77,7 +77,22 @@ extension NoteViewController {
     self.setToolbarItems([photoBarButton,flexible,mapBarButton], animated: false)
   }
   
+  
+  
   // MARK: Navigation options
+  @objc func addLocation(){
+    print("add location")
+    var selectInMap : SelectionInMapViewController
+    if note.geoposition != nil {
+      selectInMap = SelectionInMapViewController(latitude: note.geoposition?.latitude as! Double, longitude: note.geoposition?.longitude as! Double)
+    }
+    else {
+      selectInMap = SelectionInMapViewController()
+    }
+    selectInMap.delegate = self
+    present(selectInMap.wrappedInNavigation(), animated: true, completion: nil)
+  }
+  
   @objc func catchPhoto() {
     let actionSheetAlert = UIAlertController(title: NSLocalizedString("Add photo", comment: "Add photo"), message: nil, preferredStyle: .actionSheet)
     
@@ -103,7 +118,6 @@ extension NoteViewController {
     present(actionSheetAlert, animated: true, completion: nil)
   }
   
-  @objc func addLocation(){
-    
-  }
+  
+  
 }

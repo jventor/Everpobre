@@ -15,34 +15,29 @@ class NotebookListController: UITableViewController, NSFetchedResultsControllerD
   
   var fetchedResultController : NSFetchedResultsController<Notebook>!
   
-//  private func fetchNotebooks(){
-//    let context = Container.default.viewContext
-//    
-//    let req = Notebook.fetchRequest()
-//    req.fetchBatchSize = 25
-//    req.sortDescriptors = [
-//      NSSortDescriptor(key: NotebookAttributes.isDefault.rawValue, ascending: false),
-//     NSSortDescriptor(key: NotebookAttributes.name.rawValue, ascending: true)
-//    ]
-//    
-//    do {
-//      notebooks = try context.fetch(req) as! [Notebook]
-//      //dump(notebooks.count)
-//      //dump(notebooks)
-//    } catch let fetchErr {
-//      print("Failed to fetch companies:", fetchErr)
-//    }
-//  }
-  
   override func viewDidLoad() {
     super.viewDidLoad()
     
     let context = Container.default.viewContext
+    
+    if let defaultNotebook = defaultNotebook(){
+      
+    }else{
+      let notebook = Notebook(name: "My Notes", inContext: context)
+      notebook.isDefault = 1
+      do {
+          try context.save()
+      } catch let saveErr {
+          print("Failed to save notebook:", saveErr)
+      }
+    }
+    
     let fetchRequest = NSFetchRequest<Notebook>(entityName: "Notebook")
     fetchRequest.sortDescriptors = [
       NSSortDescriptor(key: NotebookAttributes.isDefault.rawValue, ascending: false),
       NSSortDescriptor(key: NotebookAttributes.name.rawValue, ascending: true)
     ]
+    
     fetchedResultController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: context, sectionNameKeyPath: nil, cacheName: nil)
 
     try! fetchedResultController.performFetch()
@@ -54,8 +49,6 @@ class NotebookListController: UITableViewController, NSFetchedResultsControllerD
     tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cellId")
     
     navigationItem.leftBarButtonItem = UIBarButtonItem(image: #imageLiteral(resourceName: "plus"), style: .plain, target: self, action: #selector(handleNewOptions))
-     // UIBarButtonItem(title: "+", style: .plain, target: self, action: #selector(handleNewOptions))
-   // navigationItem.rightBarButtonItem = UIBarButtonItem(title: "New note", style: .plain, target: self, action: #selector(handleNewNote))
   }
 
   @objc func handleNewOptions() {
@@ -80,15 +73,11 @@ class NotebookListController: UITableViewController, NSFetchedResultsControllerD
   
  
   func handleNewNote(){
-    print("Adding notes...")
-    
     let context = Container.default.viewContext
-    let _ = Note(title: "Note title", text: "", notebook: defaultNotebook(), inContext: context)
+    let _ = Note(title: "Note title", text: "", notebook: defaultNotebook()!, inContext: context)
     if context.hasChanges{
       do {
         try context.save()
-        //delegate?.didAddNotebook(notebook: notebook)
-        //tableView.reloadData()
       } catch let saveErr {
         print("Failed to save notebook:", saveErr)
       }
@@ -96,10 +85,7 @@ class NotebookListController: UITableViewController, NSFetchedResultsControllerD
   }
 
   func handleNewNotebook(){
-    print("Adding notebooks...")
-
     let createNotebookController = CreateNotebookController()
-    //createNotebookController .delegate = self
     present(createNotebookController .wrappedInNavigation(), animated: true, completion: nil)
   }
   
@@ -107,15 +93,10 @@ class NotebookListController: UITableViewController, NSFetchedResultsControllerD
   // MARK: UITableViewController Delegate
   
   override func numberOfSections(in tableView: UITableView) -> Int {
-   print("Numero de libretas: \(notebooks.count)")
-//    return notebooks.count
-    //return notebooks.count
      return (fetchedResultController.fetchedObjects?.count)!
   }
   
   override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-    //return "\(notebooks[section].name) \(notebooks[section].creationDate)"
-    
     return fetchedResultController.object(at: IndexPath(row: section, section: 0)).name
   }
   
@@ -130,10 +111,6 @@ class NotebookListController: UITableViewController, NSFetchedResultsControllerD
     let cell = tableView.dequeueReusableCell(withIdentifier: "cellId", for: indexPath)
     cell.backgroundColor = .white
     
-    //let notebook = notebooks[indexPath.section]
-    
-    //cell.textLabel?.text = "\(notebook.name) \(notebook.creationDate.description)"
-    
     let notesSortDescriptor = NSSortDescriptor(key: NoteAttributes.creationDate.rawValue, ascending: false)
     let notebook = fetchedResultController.object(at: IndexPath(row: indexPath.section, section: 0))
     let notes = notebook.notes.sortedArray(using: [notesSortDescriptor]) as! [Note]
@@ -143,14 +120,6 @@ class NotebookListController: UITableViewController, NSFetchedResultsControllerD
     return cell
   }
   
-//  override func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
-//    let view = UIView()
-//
-//    view.backgroundColor = UIColor.lightGray
-//
-//    return view
-//  }
-
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
     let notesSortDescriptor = NSSortDescriptor(key: NoteAttributes.creationDate.rawValue, ascending: false)
     let notebook = fetchedResultController.object(at: IndexPath(row: indexPath.section, section: 0))
@@ -169,8 +138,6 @@ class NotebookListController: UITableViewController, NSFetchedResultsControllerD
 
 extension NotebookListController : NoteViewControllerDelegate {
   func didChangeNote() {
-  //  tableView.reloadData()
-    
     let context = Container.default.viewContext
     if context.hasChanges{
       do {
@@ -183,14 +150,13 @@ extension NotebookListController : NoteViewControllerDelegate {
 }
 
 extension NotebookListController {
-  func defaultNotebook() -> Notebook {
+  
+  func defaultNotebook() -> Notebook? {
     var notebooks = [Notebook]()
     
     let context = Container.default.viewContext
     
     let req = Notebook.fetchRequest()
-    //req.fetchBatchSize = 25
-    //fetchRequest.predicate = NSPredicate(format: "firstName == %@", firstName)
     req.predicate = NSPredicate(format: "isDefault == 1")
     
     do {
@@ -198,7 +164,7 @@ extension NotebookListController {
       
       dump(notebooks.count)
       dump(notebooks)
-      return notebooks.first!
+      return notebooks.first
       
     } catch let fetchErr {
       print("Failed to fetch default notebook:", fetchErr)
@@ -206,6 +172,5 @@ extension NotebookListController {
       notebook.isDefault = 1
       return notebook
     }
-    
   }
 }
