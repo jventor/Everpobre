@@ -27,7 +27,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     notebookListVC = NotebookListController()
     
     let navController = UINavigationController(rootViewController: notebookListVC!)
-    navController.navigationBar.prefersLargeTitles = true
+    //navController.navigationBar.prefersLargeTitles = true
     navController.navigationBar.topItem?.title = "Everpobre"
     
     // Controller vacio, al abrir no hay notas seleccionadas
@@ -38,10 +38,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     splitViewController.delegate = self
     window?.rootViewController = splitViewController
     
-//    navController.modalPresentationStyle = .currentContext
-//    if UIDevice.current.userInterfaceIdiom == .pad {
-//      splitViewController.viewControllers.first?.present(navController, animated: true, completion: nil)
-//    }
+//    let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+//
+//    print(documentDirectory.absoluteString)
     
     return true
   }

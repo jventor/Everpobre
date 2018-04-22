@@ -27,6 +27,7 @@ final class NoteViewController : UIViewController {
     let textField = UITextField()
     textField.backgroundColor = UIColor.lightGray
     textField.translatesAutoresizingMaskIntoConstraints = false
+    textField.placeholder = "Note title"
     return textField
   }()
   
@@ -80,7 +81,7 @@ final class NoteViewController : UIViewController {
     let textView = UITextView()
     textView.translatesAutoresizingMaskIntoConstraints = false
     textView.backgroundColor = UIColor.lightGray
-    textView.text = "Lorem ipsum dolor sit er elit lamet, consectetaur cillium adipisicing pecu, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Nam liber te conscient to factor tum poen legum odioque civiuda."
+  
     return textView
   }()
   
@@ -93,15 +94,8 @@ final class NoteViewController : UIViewController {
   
 
   init(model: Note) {
-//    if let model = model {
-//         self.note = model
-//    }
-//    else{
-//      self.note = Note()
-//    }
     self.note = model
     super.init(nibName: nil, bundle: Bundle(for: type(of: self)))
-    
   }
   
   required init?(coder aDecoder: NSCoder) {
@@ -128,43 +122,33 @@ override func viewDidLoad() {
     datePicker.locale = NSLocale(localeIdentifier: "en_GB") as Locale
     datePicker.minimumDate = Date()
   
-    expirationDateTextField.text = note.expirationDate.description
+    expirationDateTextField.text = note.expirationDate?.description
     expirationDateTextField.inputView = datePicker
   
     notebookPickerView.delegate = self
     notebookPickerView.dataSource = self
   
     notebookTextField.inputView = notebookPickerView
-    notebookTextField.text = note.notebook?.name
+    notebookTextField.text = note.notebook.name
     showImages()
   
     // MARK: Gestures
-
-  
     let swipeGesture = UISwipeGestureRecognizer(target: self, action: #selector(closeKeyboard))
     swipeGesture.direction = .down
   
     view.addGestureRecognizer(swipeGesture)
-
-  //imageView.addGestureRecognizer(moveViewGesture)
-
   }
   
   @objc func closeKeyboard(){
-    
-    
-    if noteTextView.isFirstResponder
-    {
+    if noteTextView.isFirstResponder {
       noteTextView.resignFirstResponder()
     }
-    else if titleTextField.isFirstResponder
-    {
+    else if titleTextField.isFirstResponder {
       titleTextField.resignFirstResponder()
     }
   }
   
-  @objc func userMoveImage(longPressGesture:UILongPressGestureRecognizer)
-  {
+  @objc func userMoveImage(longPressGesture:UILongPressGestureRecognizer) {
     let imageView = longPressGesture.view as! UIImageView
     print("entro...")
     switch longPressGesture.state {
@@ -178,23 +162,25 @@ override func viewDidLoad() {
     case .changed:
       let location = longPressGesture.location(in: view)
 
-      imageView.frame = CGRect(x: location.x - relativePoint.x, y: location.y - relativePoint.y, width:
-      imageView.frame.size.width, height: imageView.frame.size.height)
-      note.images[imageView.tag].x = location.x - relativePoint.x
-      note.images[imageView.tag].y = location.y - relativePoint.y
+      imageView.frame = CGRect(x: location.x - relativePoint.x,
+                               y: location.y - relativePoint.y,
+                               width: imageView.frame.size.width,
+                               height: imageView.frame.size.height)
+      let images = note.images.allObjects
+      let img = images[imageView.tag] as! Image
+      img.x = location.x - relativePoint.x as NSNumber
+      img.y = location.y - relativePoint.y as NSNumber
       
     case .ended, .cancelled:
-      
       UIView.animate(withDuration: 0.1, animations: {
         imageView.transform = CGAffineTransform.init(scaleX: 1, y: 1)
       })
+      delegate?.didChangeNote()
       
     default:
       break
     }
-    
-  
-  }
+}
   
   @objc func datePickerValueChanged(datePicker: UIDatePicker) {
     let dateFormatter = DateFormatter()
@@ -209,13 +195,13 @@ override func viewDidLoad() {
   }
   
   func showImages(){
-
-    for index in 0..<note.images.count{
-      let image = note.images[index]
+    let images = note.images.allObjects
+    for index in 0..<images.count{
+      let image = images[index] as! Image
       let newImageView = UIImageView()
-      newImageView.image = image.image
+      newImageView.image = image.imagen
       view.addSubview(newImageView)
-      newImageView.frame = CGRect(x: Double(image.x), y: Double(image.y), width: image.width, height: image.height)
+      newImageView.frame = CGRect(x: (image.x?.doubleValue)!, y: (image.y?.doubleValue)!, width: (image.width?.doubleValue)! , height: (image.height?.doubleValue)! )
       newImageView.isUserInteractionEnabled = true
       let moveViewGesture = UILongPressGestureRecognizer(target: self, action: #selector(userMoveImage))
       newImageView.addGestureRecognizer(moveViewGesture)
@@ -239,15 +225,13 @@ extension NoteViewController : UITextFieldDelegate {
   func textFieldDidEndEditing(_ textField: UITextField) {
     note.title = titleTextField.text!
     delegate?.didChangeNote()
-
-    
-    //try! note?.managedObjectContext?.save()
   }
 }
 
 extension NoteViewController : UITextViewDelegate{
   func textViewDidEndEditing(_ textView: UITextView) {
     note.text = noteTextView.text!
+    delegate?.didChangeNote()
   }
 }
 
@@ -260,8 +244,9 @@ extension NoteViewController : UIPickerViewDelegate, UIPickerViewDataSource {
     var theViewController : NotebookListController
     let appDelegate = UIApplication.shared.delegate as! AppDelegate
     theViewController = appDelegate.notebookListVC!
+    let fc = theViewController.fetchedResultController
     
-    return theViewController.notebooks.count
+    return (fc!.fetchedObjects?.count)!
   }
   
   func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
@@ -269,17 +254,23 @@ extension NoteViewController : UIPickerViewDelegate, UIPickerViewDataSource {
     var theViewController : NotebookListController
     let appDelegate = UIApplication.shared.delegate as! AppDelegate
     theViewController = appDelegate.notebookListVC!
-    
-    return theViewController.notebooks[row].name
+    let fc = theViewController.fetchedResultController
+
+    return fc?.object(at: IndexPath(row: row, section: 0)).name
   }
   
   func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
     var theViewController : NotebookListController
     let appDelegate = UIApplication.shared.delegate as! AppDelegate
     theViewController = appDelegate.notebookListVC!
-
-    note.notebook = theViewController.notebooks[row]
-    notebookTextField.text = note.notebook?.name
+    let fc = theViewController.fetchedResultController
+    
+    //let notesSortDescriptor = NSSortDescriptor(key: NoteAttributes.creationDate.rawValue, ascending: false)
+    let notebook = fc?.object(at: IndexPath(row: row, section: 0))
+    //let notes = notebook?.notes.sortedArray(using: [notesSortDescriptor]) as! [Note]
+    
+    note.notebook = notebook!
+    notebookTextField.text = note.notebook.name
 
     self.delegate?.didChangeNote()
   }

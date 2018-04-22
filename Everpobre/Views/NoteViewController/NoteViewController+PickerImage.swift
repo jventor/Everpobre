@@ -40,11 +40,12 @@ extension NoteViewController: UIImagePickerControllerDelegate, UINavigationContr
     
     // Añado la imagen al array de imageviews
     imageViewArray.append(newImageView)
-    
-    // Añado la imagen a la nota
-    let newImage = Image(image: image, x: x, y: y, width: 100, height: 100)
-    note.images.append(newImage)
 
+    let context = Container.default.viewContext
+    let newImage = Image(image: image, note: note, x: Double(x), y: Double(y), width: 100, height: 100, inContext: context)
+    note.addImages([newImage])
+
+    delegate?.didChangeNote()
     picker.dismiss(animated: true, completion: nil)
     
   }

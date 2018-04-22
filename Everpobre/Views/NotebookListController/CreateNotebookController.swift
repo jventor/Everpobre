@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import CoreData
 
 protocol CreateNotebookControllerDelegate{
   func didAddNotebook(notebook: Notebook)
@@ -28,6 +29,7 @@ class CreateNotebookController: UIViewController {
     let textField = UITextField()
     textField.translatesAutoresizingMaskIntoConstraints = false
     textField.backgroundColor = UIColor.lightGray
+    textField.placeholder = "Notebook name"
     return textField
   }()
   
@@ -53,7 +55,7 @@ class CreateNotebookController: UIViewController {
     notebookNameTextField.heightAnchor.constraint(equalTo: notebookNameLabel.heightAnchor).isActive = true
     
     
-    navigationItem.title = "Create Company"
+    navigationItem.title = "Create Notebook"
     
     navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(handleCancel))
     
@@ -62,32 +64,19 @@ class CreateNotebookController: UIViewController {
   
   
   @objc private func handleSave() {
-    print("Trying to save company...")
-    let notebook = Notebook(name: notebookNameTextField.text ?? "", creationDate: Date(), notes: [])
-    delegate?.didAddNotebook(notebook: notebook)
+    let context = Container.default.viewContext
+
+    let notebook = Notebook(name: notebookNameTextField.text!, inContext: context)
+
+    if context.hasChanges{
+      do {
+        try context.save()
+        delegate?.didAddNotebook(notebook: notebook)
+      } catch let saveErr {
+        print("Failed to save notebook:", saveErr)
+      }
+    }
     dismiss(animated: true, completion: nil)
-    
-//    // initialization of our Core Data stack
-//
-//    let persistentContainer = NSPersistentContainer(name: "IntermediateTrainingModels")
-//    persistentContainer.loadPersistentStores { (storeDescription, err) in
-//      if let err = err {
-//        fatalError("Loading of store failed: \(err)")
-//      }
-//    }
-//
-//    let context = persistentContainer.viewContext
-//
-//    let company = NSEntityDescription.insertNewObject(forEntityName: "Company", into: context)
-//
-//    company.setValue(nameTextField.text, forKey: "name")
-//
-//    // perform the save
-//    do {
-//      try context.save()
-//    } catch let saveErr {
-//      print("Failed to save company:", saveErr)
-//    }
   }
   
   @objc func handleCancel() {
